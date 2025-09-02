@@ -66,11 +66,13 @@ This will generate a CSV file as specified in the configuration file at the loca
 - `field_pattern_do_not_want`: (string) A regular expression pattern to exclude from all available fields, (default "(marcrelator|isSequenceNumberOf)")
 - `id_field`: (string) The Solr field name of the ID, (default "PID")
 - `id_start_number`: (int) The number to start numbering rows with (default 1)
+- `add_info_fedora_prefix`: (boolean) Whether to automatically add the "info:fedora/" prefix from collection and content model values (default True).
 - `datastreams`: (list<string>) The datastreams to try to retrieve for each record, stops on first match. (default ["OBJ", "PDF"])
 - `debug`: (boolean) Include debug information in the log (default False)
 - `deep_debug`: (boolean) Include verbose debug information in the log (default False)
 - `collection`: (string) Restrict retrieve records to be a part of this collection.
 - `collections`: (list<string>) Restrict retrieve records to be a part of these collections.
+- `collection_field`: (string) The Solr field name that contains collection membership information (default "RELS_EXT_isMemberOfCollection_uri_s").
 - `content_model`: (string) Restrict retrieve records to be of this content model.
 - `solr_filters`: (dict) Additional Solr filters to apply (key = field name, value = field value).
 - `start`: (int) Record to start Solr rows at (default 0).
@@ -78,3 +80,21 @@ This will generate a CSV file as specified in the configuration file at the loca
 - `secure_ssl_only`: (boolean) Whether to require a SSL connection (default True).
 - `pids`: (list<string>) List of specific PIDs to include.
 - `pids_to_skip`: (list<string>) List of PIDs to not retrieve.
+- `paginate`: (boolean) Whether to page through **all** records in batches of `rows` (default False)
+- `metadata_fields`: (dict) Dictionary of metadata fields to include in the CSV pulled from other XML datastreams. (see below).
+
+
+### Metadata Fields
+The `metadata_fields` parameter is a dictionary where the key is the desired column name in the
+CSV file, and the value specifies how to retrieve that metadata. The value is a dictionary with the following keys:
+- `dsid`: (string) The XML datastream ID to retrieve (i.e. `MODS`)
+- `xpath`: (string) An XPath to retrieve the desired field (i.e. `'./{http://www.loc.gov/mods/v3}abstract'`)
+
+If the `dsid` is not found, or the `xpath` does not return a value, the field will be left blank in the CSV.
+If the `xpath` returns multiple values, they will be joined with a pipe (`|`).
+Example:
+```yaml
+metadata_fields:
+  abstract:
+    dsid: MODS
+    xpath: './{http://www.loc.gov/mods/v3}abstract'

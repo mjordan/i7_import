@@ -119,6 +119,7 @@ class i7ImportUtilities:
         "content_model": False,
         "solr_filters": False,
         "start": 0,
+        "add_info_fedora_prefix": True,
         "rows": 100000,
         "secure_ssl_only": True,
         "pids_to_use": False,
@@ -297,19 +298,29 @@ class i7ImportUtilities:
 
         if self.config["collection"]:
             collection = self.config["collection"]
+            if self.config["add_info_fedora_prefix"]:
+                collection = "info:fedora/" + collection
             params["fq"].append(f'{self.config["collection_field"]}:"{collection}"')
         if self.config["content_model"]:
             model = self.config["content_model"]
+            if self.config["add_info_fedora_prefix"]:
+                model = "info:fedora/" + model
             params["fq"].append(f'RELS_EXT_hasModel_uri_s:"{model}"')
         if self.config["solr_filters"]:
             for key, value in self.config["solr_filters"].items():
                 params["fq"].append(f'{key}:"{value}"')
         if self.config["collections"]:
             collections = self.config["collections"]
-            fedora_collections = [
-                f'{self.config["collection_field"]}:"{collection}"'
-                for collection in collections
-            ]
+            if self.config["add_info_fedora_prefix"]:
+                fedora_collections = [
+                    f'{self.config["collection_field"]}:"info:fedora/{collection}"'
+                    for collection in collections
+                ]
+            else:
+                fedora_collections = [
+                    f'{self.config["collection_field"]}:"{collection}"'
+                    for collection in collections
+                ]
             fq_string = " or ".join(fedora_collections)
             params["fq"].append(fq_string)
         if self.config["pids_to_use"]:

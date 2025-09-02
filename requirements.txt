@@ -1,3 +1,4 @@
+lxml>=4.9.3
 progress_bar>=8
 requests>=2.22,<3
 ruamel.yaml<=0.17.21

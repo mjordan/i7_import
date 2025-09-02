@@ -25,7 +25,7 @@ class SkipException(Exception):
 
 
 def cleanup_row(row_to_clean: dict) -> dict:
-    """Switch single element lists to straight strings.
+    """Switch single element lists to straight strings and multi-element lists to pipe-delimited strings.
     Parameters:
     row_to_clean: dict: The row to clean.
     -------
@@ -33,8 +33,12 @@ def cleanup_row(row_to_clean: dict) -> dict:
     dict: The cleaned row.
     """
     for k, v in row_to_clean.items():
-        if isinstance(v, list) and len(v) == 1:
-            row_to_clean[k] = v[0]
+        if isinstance(v, list):
+            if len(v) == 1:
+                row_to_clean[k] = v[0]
+            elif len(v) > 1:
+                v = list(set(v))  # Remove duplicates
+                row_to_clean[k] = "|".join(v)
     return row_to_clean
 
 
@@ -117,7 +121,7 @@ def process_block(
     """
     if inner_step:
         solr_request_string = re.sub(
-            "start=\d+",
+            r"start=\d+",
             f"start={inner_step * utils._get_config()['rows']}",
             solr_request_string,
         )
@@ -174,7 +178,7 @@ if __name__ == "__main__":
 
     """Switch to rows=0 to just get the count"""
     numFound = 0
-    metadata_solr_request_count = re.sub("rows=\d+", "rows=0", metadata_solr_request)
+    metadata_solr_request_count = re.sub(r"rows=\d+", "rows=0", metadata_solr_request)
     try:
         metadata_solr_response = requests.get(
             url=metadata_solr_request_count, allow_redirects=True
