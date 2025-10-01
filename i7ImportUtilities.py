@@ -12,6 +12,7 @@ import os
 import urllib.parse
 from rich.console import Console
 from rich.table import Table
+from typing import Union
 
 
 def _params_to_querystring(params: dict) -> str:
@@ -126,6 +127,7 @@ class i7ImportUtilities:
         "pids_to_skip": [],
         "paginate": False,
         "metadata_fields": {},
+        "get_collection_and_children": False,
     }
 
     @property
@@ -166,14 +168,14 @@ class i7ImportUtilities:
         self._logger.addHandler(handler)
 
     @lru_cache(maxsize=10)
-    def _get_i7_metadata_data(self, metadata_pid: str, ds_id: str) -> ElementTree:
+    def _get_i7_metadata_data(self, metadata_pid: str, ds_id: str) -> Union[ElementTree, None]:
         """Get the metadata for a given datastream ID as an ElementTree object.
         Parameters:
             metadata_pid: str: The PID of the metadata object.
             ds_id: str: The datastream ID to retrieve.
         -------
         Returns:
-            ET: An ElementTree object containing the metadata.
+            ET: An ElementTree object containing the metadata or none.
         """
         metadata_url = f"{self.config['islandora_base_url']}/islandora/object/{metadata_pid}/datastream/{ds_id}/download"
         try:
@@ -186,8 +188,26 @@ class i7ImportUtilities:
                 download_xml = download_response.content.decode()
                 if self.config["deep_debug"]:
                     print(download_xml)
-                root = objectify.fromstring(download_xml)
-                return root
+                try:
+                    root = objectify.fromstring(download_xml)
+                    return root
+                except ValueError as e:
+                    self.logger.warning(
+                        f"Error parsing XML for PID {metadata_pid} DSID {ds_id}: {e}"
+                    )
+                    try:
+                        download_xml = download_response.content
+                        root = objectify.fromstring(download_xml)
+                        return root
+                    except Exception as e:
+                        self.logger.error(
+                            f"Error parsing XML for PID {metadata_pid} DSID {ds_id} on second attempt: {e}"
+                        )
+                        return None
+            else:
+                self.logger.warning(
+                    f"Metadata datastream {ds_id} not found for PID {metadata_pid}"
+                )
             return None
 
         except requests.exceptions.RequestException as e:
@@ -300,7 +320,10 @@ class i7ImportUtilities:
             collection = self.config["collection"]
             if self.config["add_info_fedora_prefix"]:
                 collection = "info:fedora/" + collection
-            params["fq"].append(f'{self.config["collection_field"]}:"{collection}"')
+            collection_str = f'{self.config["collection_field"]}:"{collection}"'
+            if self.config["get_collection_and_children"]:
+                collection_str += f' OR PID:"{collection}"'
+            params["fq"].append(collection_str)
         if self.config["content_model"]:
             model = self.config["content_model"]
             if self.config["add_info_fedora_prefix"]:
@@ -316,16 +339,24 @@ class i7ImportUtilities:
                     f'{self.config["collection_field"]}:"info:fedora/{collection}"'
                     for collection in collections
                 ]
+                if self.config["get_collection_and_children"]:
+                    fedora_collections += [
+                        f'PID:"info:fedora/{collection}"' for collection in collections
+                    ]
             else:
                 fedora_collections = [
                     f'{self.config["collection_field"]}:"{collection}"'
                     for collection in collections
                 ]
-            fq_string = " or ".join(fedora_collections)
+                if self.config["get_collection_and_children"]:
+                    fedora_collections += [
+                        f'PID:"{collection}"' for collection in collections
+                    ]
+            fq_string = " OR ".join(fedora_collections)
             params["fq"].append(fq_string)
         if self.config["pids_to_use"]:
             pids_to_use = [f'PID:"{pid}"' for pid in self.config["pids_to_use"]]
-            fq_string = " or ".join(pids_to_use)
+            fq_string = " OR ".join(pids_to_use)
             params["fq"].append(fq_string)
 
         # Get the populated CSV from Solr, with the object namespace and field list filters applied.

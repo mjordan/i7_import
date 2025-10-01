@@ -97,6 +97,8 @@ def process_row(row: dict, row_id: int, failed_list: list) -> dict:
             if file:
                 row["file"] = file
                 break
+        if "file" not in row or not row["file"]:
+            utils.logger.error(f"File {row['PID']} had none of the desired datastreams ({', '.join(config['datastreams'])}).")
 
     if config["id_field"] in headers:
         row[config["id_field"]] = config["id_start_number"] + (row_id - 1)
@@ -122,7 +124,7 @@ def process_block(
     if inner_step:
         solr_request_string = re.sub(
             r"start=\d+",
-            f"start={inner_step * utils._get_config()['rows']}",
+            f"start={inner_step * utils.get_config()['rows']}",
             solr_request_string,
         )
     for row in get_rows(solr_request_string):
