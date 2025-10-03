@@ -7,7 +7,6 @@ for more info.
 
 import os
 import sys
-from typing import Generator
 
 import requests
 import argparse
@@ -97,7 +96,9 @@ def process_row(row: dict, row_id: int, failed_list: list) -> dict:
             if file:
                 row["file"] = file
                 break
-        if "file" not in row or not row["file"]:
+        try:
+            file_temp = file
+        except UnboundLocalError:
             utils.logger.error(f"File {row['PID']} had none of the desired datastreams ({', '.join(config['datastreams'])}).")
 
     if config["id_field"] in headers:
@@ -124,7 +125,7 @@ def process_block(
     if inner_step:
         solr_request_string = re.sub(
             r"start=\d+",
-            f"start={inner_step * utils.get_config()['rows']}",
+            f"start={inner_step * utils.config['rows']}",
             solr_request_string,
         )
     for row in get_rows(solr_request_string):
