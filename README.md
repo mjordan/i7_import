@@ -82,3 +82,10 @@ This will generate a CSV file as specified in the configuration file at the loca
 ## Additional documentation
 
 Additional documentation is available in the [Islandora Workbench docs](https://mjordan.github.io/islandora_workbench_docs/exporting_islandora_7_content/), but the documentation in this README is updated more frequently.
+
+## License
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
+
